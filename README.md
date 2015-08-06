@@ -83,6 +83,31 @@ The above example transaction parameters, when signed, would produce a raw, sign
 0xf86d21850ba43b7400832fefd89454450450e24286143a35686ad77a7c851ada01a0880de0b6b3a7640000801ba0c36fdbf8043a64a6096ee81da4de7f04def477b9a3210a18967fad07f72112b2a04aedfd1d9d9085256373b40ef02bc3da0a95054f40075de340086c9512707b29
 ```
 
-##### Example Use
+### Example Use
 
 For an example of this in action, see `./build/index.html` for a test application that uses the hooked provider in conjunction with ethereumjs-accounts.
+
+### Develop / Contribute
+
+To develop and contribute to this project, first install Truffle:
+
+```
+$ npm install -g truffle
+```
+
+Then edit `./app/hooked-web3-provider.es6`, and run:
+
+```
+cd ./checkout/of/repository
+$ truffle build
+```
+
+You can have Truffle build automatically as you make changes via:
+
+```
+$ truffle watch
+```
+
+### License
+
+MIT
