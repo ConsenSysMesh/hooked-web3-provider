@@ -1,0 +1,36 @@
+{
+  "Example": {
+    "source": "/Users/tim/Documents/workspace/Consensys/hooked-web3-provider/contracts/Example.sol",
+    "binary": "0x60606040525b5b60888060136000396000f30060606040526000357c010000000000000000000000000000000000000000000000000000000090048063130d6dc514604157806360fe47b114606057603f565b005b604a6004506071565b6040518082815260200191505060405180910390f35b606f600480359060200150607a565b005b60006000505481565b806000600050819055505b5056",
+    "abi": [
+      {
+        "inputs": [],
+        "constant": true,
+        "name": "test_value",
+        "outputs": [
+          {
+            "type": "uint256",
+            "name": ""
+          }
+        ],
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "type": "uint256",
+            "name": "new_value"
+          }
+        ],
+        "constant": false,
+        "name": "set",
+        "outputs": [],
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "type": "constructor"
+      }
+    ]
+  }
+}

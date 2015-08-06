@@ -1,0 +1,207 @@
+
+
+<!DOCTYPE html>
+<html>
+<head>
+  <script type="text/javascript" src="./app.js"></script>
+</head>
+<body>
+  <h1>Hooked Web3 Provider tester</h1>
+  <p>
+    Send 1 Ether between accounts registered both in the client and in the browser. As new accounts are chosen balances will be updated.
+    <br>
+    <br>To use this properly, make sure you have at least one account that is managed by your Ethereum client. Then, you can add new browser
+    <br>accounts and pass Ether between each type of account. Underthe hood, all transactions sent from accounts handled by the browser will
+    <br>be rewritten and signed by ethereumjs-accounts.
+    <br>
+    <br>Lastly, make sure you have an Ethereum client running via RPC at http://localhost:8545 :)
+  </p>
+
+  <hr><br>
+
+  <strong>Send Ether</strong>
+  <br><br>
+
+  <label>From</label>
+  <select id="from_account">
+    <optgroup class="in_client" label="Registered in Client (web3)">
+    </optgroup>
+    <optgroup class="in_browser" label="Registered in Browser (ethereumjs-accounts)">
+    </optgroup>
+  </select>
+  <span id="from_balance"></span>
+
+  <br>
+
+  <label>To</label>
+  <select id="to_account">
+    <optgroup class="in_client" label="Registered in Client (web3)">
+    </optgroup>
+    <optgroup class="in_browser" label="Registered in Browser (ethereumjs-accounts)">
+    </optgroup>
+  </select>
+  <span id="to_balance"></span>
+
+  <br><br><button id="send_transaction">Send 1 Ether</button>&nbsp;&nbsp;<button id="swap_addresses">Swap from/to</button>&nbsp;&nbsp;<button id="refresh_balances">Refresh balances</button>
+
+  <br><br><button id="add_new_account">Add new Browser account</button>
+  <br><br>Note: for all new browser accounts, password is "passphrase" (no quotes)
+
+  <hr><br>
+
+  <strong>Execute Contract</strong>
+  <br>All executed via "From" address; "To" address above ignored.
+
+  <br><br><button id="deploy_contract">Deploy Contract</button>&nbsp;&nbsp;<button id="execute_code">Execute Example Contract Function (set test_value):</button><input type="text" value="5" id="test_value"></input><span id="test_value_output"></span>
+  <script type="text/javascript">
+    var contract_address = null;
+    var gasPrice = 50000000000;
+
+    // For display purposes only.
+    BigNumber.config({EXPONENTIAL_AT: 1000});
+
+    $(document).on("ready", function() {
+      var accounts = new Accounts({minPassphraseLength: 6});
+      window.accounts = accounts; // For debugging.
+      var provider = new HookedWeb3Provider({
+        host: "http://localhost:8545",
+        transaction_signer: accounts // transaction_signer must implement signTransaction() and hasAddress()
+      });
+      web3.setProvider(provider);
+
+      var from_account = $("#from_account");
+      var to_account = $("#to_account");
+      var send_transaction = $("#send_transaction");
+      var add_new_account = $("#add_new_account");
+      var swap_addresses = $("#swap_addresses");
+      var refresh_balances = $("#refresh_balances");
+      var deploy_contract = $("#deploy_contract");
+      var execute_code = $("#execute_code");
+      var test_value = $("#test_value")
+      var test_value_output = $("#test_value_output");
+
+      var addAddress = function(optgroup, address) {
+        var option = $(document.createElement("option"));
+        option.attr("value", address);
+        option.html(address);
+        optgroup.append(option);
+      };
+
+      var updateBalances = function() {
+        web3.eth.getBalance(from_account.val(), function(err, balance) {
+          // Use our BigNumber config.
+          var b = new BigNumber(balance);
+          $("#from_balance").html(b.toString());
+        });
+
+        web3.eth.getBalance(to_account.val(), function(err, balance) {
+          // Use our BigNumber config.
+          var b = new BigNumber(balance);
+          $("#to_balance").html(b.toString());
+        });
+      };
+
+      web3.eth.getAccounts(function(err, in_client) {
+        for (var i = 0; i < in_client.length; i++) {
+          var address = in_client[i];
+          addAddress(from_account.find(".in_client"), address);
+          addAddress(to_account.find(".in_client"), address);
+        }
+
+        from_account.val(in_client[0]);
+        updateBalances();
+      });
+
+      var in_browser = accounts.get();
+      var in_browser_addresses = Object.keys(in_browser);
+
+      for (var i = 0; i < in_browser_addresses.length; i++) {
+        var address = in_browser_addresses[i];
+
+        if (address == "selected") {
+          continue;
+        }
+
+        addAddress(from_account.find(".in_browser"), address);
+        addAddress(to_account.find(".in_browser"), address);
+      }
+
+      to_account.val(in_browser_addresses[0]);
+
+      from_account.on("change", updateBalances);
+      to_account.on("change", updateBalances);
+
+      send_transaction.on("click", function() {
+        from_address = from_account.val();
+        to_address = to_account.val();
+
+        web3.eth.sendTransaction({
+          from: from_address,
+          to: to_address,
+          value: 1000000000000000000,
+          gas: 3141592,
+          gasPrice: gasPrice
+        }, function(err, result) {
+          updateBalances();
+          if (err != null) {
+            console.log(err);
+            alert("ERROR: Transaction didn't go through. See console.");
+          } else {
+            alert("Transaction Successful!");
+          }
+        });
+      });
+
+      refresh_balances.on("click", function() {
+        updateBalances();
+      });
+
+      add_new_account.on("click", function() {
+        var new_account = accounts.new("passphrase");
+        accounts.set(new_account.address, new_account);
+        addAddress(from_account.find(".in_browser"), new_account.address);
+        addAddress(to_account.find(".in_browser"), new_account.address);
+        console.log("New browser account registered: " + new_account.address);
+      });
+
+      swap_addresses.on("click", function() {
+        var from = from_account.val();
+        var to = to_account.val();
+        from_account.val(to);
+        to_account.val(from);
+        updateBalances();
+      });
+
+      deploy_contract.on("click", function() {
+        var from_address = from_account.val();
+
+        Example.new({from: from_address, gasPrice: gasPrice}).then(function(example) {
+          alert("Contract deployed correctly!");
+          contract_address = example.address;
+          return example.test_value.call({from: from_address});
+        }).then(function(val) {
+          test_value_output.html("Test value: " + val.valueOf());
+        }).catch(function(e) {
+          console.log(e);
+          alert("Error deploying contract! See console.");
+        });;
+      });
+
+      execute_code.on("click", function() {
+        var from_address = from_account.val();
+        var example = Example.at(contract_address);
+
+        example.set(test_value.val(), {from: from_address, gasPrice: gasPrice}).then(function(tx) {
+          alert("Value set successfully!");
+          return example.test_value.call({from: from_address});
+        }).then(function(val) {
+          test_value_output.html("Test value: " + val.valueOf());
+        }).catch(function(e) {
+          console.log(e);
+          alert("Couldn't set value! See console.");
+        });
+      });
+    });
+  </script>
+</body>
+</html>

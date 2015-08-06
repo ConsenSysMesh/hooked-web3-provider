@@ -1,0 +1,21 @@
+{
+  "build": {
+    // The main library file.
+    "hooked-web3-provider.js": "hooked-web3-provider.es6",
+
+    // The next two are for testing.
+    "app.js": [
+      "../node_modules/jquery/dist/jquery.min.js",
+      "../node_modules/bignumber.js/bignumber.js",
+      "../node_modules/ethereumjs-accounts/dist/ethereumjs-accounts.js",
+      "hooked-web3-provider.es6"
+    ],
+    "index.html": "index.html"
+  },
+  "deploy": [],
+  "rpc": {
+    // Default RPC configuration.
+    "host": "localhost",
+    "port": 8545
+  }
+}
