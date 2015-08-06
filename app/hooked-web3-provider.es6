@@ -4,10 +4,14 @@ var factory = function(web3) {
     constructor({host, transaction_signer}) {
       super(host);
       this.transaction_signer = transaction_signer;
+
+      // Cache of the most up to date transaction counts (nonces) for each address
+      // encountered by the web3 provider that's managed by the transaction signer.
+      this.global_nonces = {};
     }
 
-    // Note: We *could* make it support synchronous methods, but I don't think we should.
-    // Tabling this functionality for now.
+    // We can't support *all* synchronous methods because we have to call out to
+    // a transaction signer. So removing the ability to serve any.
     send(payload) {
       throw new Error("HookedWeb3Provider does not support synchronous methods. Please provide a callback.");
     }
@@ -31,7 +35,7 @@ var factory = function(web3) {
 
     // Rewrite all eth_sendTransaction payloads in the requests array.
     // This takes care of batch requests, and updates the nonces accordingly.
-    rewritePayloads(index, requests, nonces, finished) {
+    rewritePayloads(index, requests, session_nonces, finished) {
       if (index >= requests.length) {
         finished();
         return;
@@ -45,7 +49,7 @@ var factory = function(web3) {
           finished(err);
           return;
         }
-        this.rewritePayloads(index + 1, requests, nonces, finished);
+        this.rewritePayloads(index + 1, requests, session_nonces, finished);
       };
 
       // If this isn't a transaction we can modify, ignore it.
@@ -57,59 +61,69 @@ var factory = function(web3) {
       var tx_params = payload.params[0];
       var sender = tx_params.from;
 
-      if (!this.transaction_signer.hasAddress(sender)) {
-        next();
-        return;
-      }
-
-      // Get the nonce, requesting from web3 if we need to.
-      // Note that we record the nonce for each address in the nonces
-      // object once we've gotten the nonce already.
-      var getNonceAsHex = function(done) {
-        // If a nonce is specified in our nonce list, use that nonce.
-        var nonce = nonces[sender];
-        if (nonce != null) {
-          done(null, web3.toHex(nonce));
+      this.transaction_signer.hasAddress(sender, (err, has_address) => {
+        if (err != null || has_address == false) {
+          next(err);
           return;
         }
-        // Include pending transactions, so the nonce is set accordingly.
-        // TODO: Should we call our own sendAsync method here instead of web3?
-        // Not calling our own sendAsync leaves room for the possibility we call
-        // a different web3 provider in the event we're not the main one registered.
-        web3.eth.getTransactionCount(sender, "pending", function(err, new_nonce) {
-          if (err != null) {
-            done(err);
+
+        // Get the nonce, requesting from web3 if we haven't already requested it in this session.
+        // Remember: "session_nonces" is the nonces we know about for this batch of rewriting (this "session").
+        //           Having this cache makes it so we only need to call getTransactionCount once per batch.
+        //           "global_nonces" is nonces across the life of this provider.
+        var getNonce = (done) => {
+          // If a nonce is specified in our nonce list, use that nonce.
+          var nonce = session_nonces[sender];
+          if (nonce != null) {
+            done(null, nonce);
           } else {
-            done(null, web3.toHex(new_nonce));
+            // Include pending transactions, so the nonce is set accordingly.
+            // Note: "pending" doesn't seem to take effect for some Ethereum clients (geth),
+            // hence the need for global_nonces.
+            web3.eth.getTransactionCount(sender, "pending", function(err, new_nonce) {
+              if (err != null) {
+                done(err);
+              } else {
+                done(null, new_nonce.valueOf());
+              }
+            });
           }
-        });
-      };
+        };
 
-      // Get the nonce, requesting from web3 if we need to.
-      // We then store the nonce and update it so we don't have to
-      // to request from web3 again.
-      getNonceAsHex((err, nonce) => {
-        if (err != null) {
-          finished(err);
-          return;
-        }
-
-        // Set the expected nonce, and update our list of nonces.
-        // Remember that nonce is a
-        tx_params.nonce = nonce;
-        nonces[sender] = web3.toDecimal(nonce) + 1;
-
-        // If our transaction signer does represent the address,
-        // sign the transaction ourself and rewrite the payload.
-        this.transaction_signer.signTransaction(tx_params, function(err, raw_tx) {
+        // Get the nonce, requesting from web3 if we need to.
+        // We then store the nonce and update it so we don't have to
+        // to request from web3 again.
+        getNonce((err, nonce) => {
           if (err != null) {
-            next(err);
+            finished(err);
             return;
           }
 
-          payload.method = "eth_sendRawTransaction";
-          payload.params = [raw_tx];
-          next();
+          // Set the expected nonce, and update our caches of nonces.
+          // Note that if our session nonce is lower than what we have cached
+          // across all transactions (and not just this batch) use our cached
+          // version instead, even if
+          var final_nonce = Math.max(nonce, this.global_nonces[sender] || 0);
+
+          // Update the transaction parameters.
+          tx_params.nonce = web3.toHex(final_nonce);
+
+          // Update caches.
+          session_nonces[sender] = final_nonce + 1;
+          this.global_nonces[sender] = final_nonce + 1;
+
+          // If our transaction signer does represent the address,
+          // sign the transaction ourself and rewrite the payload.
+          this.transaction_signer.signTransaction(tx_params, function(err, raw_tx) {
+            if (err != null) {
+              next(err);
+              return;
+            }
+
+            payload.method = "eth_sendRawTransaction";
+            payload.params = [raw_tx];
+            next();
+          });
         });
       });
     }
