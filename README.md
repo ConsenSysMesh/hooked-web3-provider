@@ -45,7 +45,7 @@ Transaction signers are bound by a simple interface. The object must contain two
 
 Asynchronous method used to determine if the transaction signer manages the address passed in. We recommend the transaction signer account for addresses that start with "0x" as well as those that do not. 
 
-**Arguments:**
+######Arguments:
 
 * `string` - Address that will be checked. 
 * `function(error, boolean)` - callback when finished. If an error occured, `error` will be non-null; otherwise it's null. Upon a successful request, the boolean value will represent whether or not the address is managed by the transaction signer.
@@ -54,7 +54,7 @@ Asynchronous method used to determine if the transaction signer manages the addr
 
 Asynchronous method used to sign a transaction. This method will only be called if `hasAddress` provides a value of `true` for a specific address. This method should sign a transaction based on the parameters. 
 
-**Arguments**
+######Arguments
 
 * `object` - An object containing the transaction parameters. Example below.
 * `function(error, string)` - callback when finished signing. If an error occured, `error` will be non-null; otherwise it's null. If the transaction was successfully signed, the string reterned via the callback will be the raw, signed hash of the transaction. Example below.
