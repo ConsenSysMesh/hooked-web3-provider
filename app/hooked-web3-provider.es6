@@ -13,7 +13,22 @@ var factory = function(web3) {
     // We can't support *all* synchronous methods because we have to call out to
     // a transaction signer. So removing the ability to serve any.
     send(payload) {
-      throw new Error("HookedWeb3Provider does not support synchronous methods. Please provide a callback.");
+      var requests = payload;
+      if (!(requests instanceof Array)) {
+        requests = [requests];
+      }
+
+      for (var request of requests) {
+        if (request.method == "eth_sendTransaction") {
+          throw new Error("HookedWeb3Provider does not support synchronous transactions. Please provide a callback.")
+        }
+      }
+
+      var finishedWithRewrite = () => {
+        super.send(payload, callback);
+      };
+
+      this.rewritePayloads(0, requests, {}, finishedWithRewrite);
     }
 
     // Catch the requests at the sendAsync level, rewriting all sendTransaction

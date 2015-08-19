@@ -34,7 +34,45 @@ var factory = function factory(web3) {
     _createClass(HookedWeb3Provider, [{
       key: "send",
       value: function send(payload) {
-        throw new Error("HookedWeb3Provider does not support synchronous methods. Please provide a callback.");
+        var _this = this;
+
+        var requests = payload;
+        if (!(requests instanceof Array)) {
+          requests = [requests];
+        }
+
+        var _iteratorNormalCompletion = true;
+        var _didIteratorError = false;
+        var _iteratorError = undefined;
+
+        try {
+          for (var _iterator = requests[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+            var request = _step.value;
+
+            if (request.method == "eth_sendTransaction") {
+              throw new Error("HookedWeb3Provider does not support synchronous transactions. Please provide a callback.");
+            }
+          }
+        } catch (err) {
+          _didIteratorError = true;
+          _iteratorError = err;
+        } finally {
+          try {
+            if (!_iteratorNormalCompletion && _iterator["return"]) {
+              _iterator["return"]();
+            }
+          } finally {
+            if (_didIteratorError) {
+              throw _iteratorError;
+            }
+          }
+        }
+
+        var finishedWithRewrite = function finishedWithRewrite() {
+          _get(Object.getPrototypeOf(HookedWeb3Provider.prototype), "send", _this).call(_this, payload, callback);
+        };
+
+        this.rewritePayloads(0, requests, {}, finishedWithRewrite);
       }
 
       // Catch the requests at the sendAsync level, rewriting all sendTransaction
@@ -43,10 +81,10 @@ var factory = function factory(web3) {
     }, {
       key: "sendAsync",
       value: function sendAsync(payload, callback) {
-        var _this = this;
+        var _this2 = this;
 
         var finishedWithRewrite = function finishedWithRewrite() {
-          _get(Object.getPrototypeOf(HookedWeb3Provider.prototype), "sendAsync", _this).call(_this, payload, callback);
+          _get(Object.getPrototypeOf(HookedWeb3Provider.prototype), "sendAsync", _this2).call(_this2, payload, callback);
         };
 
         var requests = payload;
@@ -63,7 +101,7 @@ var factory = function factory(web3) {
     }, {
       key: "rewritePayloads",
       value: function rewritePayloads(index, requests, session_nonces, finished) {
-        var _this2 = this;
+        var _this3 = this;
 
         if (index >= requests.length) {
           finished();
@@ -78,7 +116,7 @@ var factory = function factory(web3) {
             finished(err);
             return;
           }
-          _this2.rewritePayloads(index + 1, requests, session_nonces, finished);
+          _this3.rewritePayloads(index + 1, requests, session_nonces, finished);
         };
 
         // If this isn't a transaction we can modify, ignore it.
@@ -132,18 +170,18 @@ var factory = function factory(web3) {
             // Note that if our session nonce is lower than what we have cached
             // across all transactions (and not just this batch) use our cached
             // version instead, even if
-            var final_nonce = Math.max(nonce, _this2.global_nonces[sender] || 0);
+            var final_nonce = Math.max(nonce, _this3.global_nonces[sender] || 0);
 
             // Update the transaction parameters.
             tx_params.nonce = web3.toHex(final_nonce);
 
             // Update caches.
             session_nonces[sender] = final_nonce + 1;
-            _this2.global_nonces[sender] = final_nonce + 1;
+            _this3.global_nonces[sender] = final_nonce + 1;
 
             // If our transaction signer does represent the address,
             // sign the transaction ourself and rewrite the payload.
-            _this2.transaction_signer.signTransaction(tx_params, function (err, raw_tx) {
+            _this3.transaction_signer.signTransaction(tx_params, function (err, raw_tx) {
               if (err != null) {
                 next(err);
                 return;
