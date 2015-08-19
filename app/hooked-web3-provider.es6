@@ -12,7 +12,7 @@ var factory = function(web3) {
 
     // We can't support *all* synchronous methods because we have to call out to
     // a transaction signer. So removing the ability to serve any.
-    send(payload) {
+    send(payload, callback) {
       var requests = payload;
       if (!(requests instanceof Array)) {
         requests = [requests];
@@ -25,10 +25,11 @@ var factory = function(web3) {
       }
 
       var finishedWithRewrite = () => {
-        super.send(payload, callback);
+        console.log(payload);
+        return super.send(payload, callback);
       };
 
-      this.rewritePayloads(0, requests, {}, finishedWithRewrite);
+      return this.rewritePayloads(0, requests, {}, finishedWithRewrite);
     }
 
     // Catch the requests at the sendAsync level, rewriting all sendTransaction
@@ -52,8 +53,7 @@ var factory = function(web3) {
     // This takes care of batch requests, and updates the nonces accordingly.
     rewritePayloads(index, requests, session_nonces, finished) {
       if (index >= requests.length) {
-        finished();
-        return;
+        return finished();
       }
 
       var payload = requests[index];
@@ -61,16 +61,14 @@ var factory = function(web3) {
       // Function to remove code duplication for going to the next payload
       var next = (err) => {
         if (err != null) {
-          finished(err);
-          return;
+          return finished(err);
         }
-        this.rewritePayloads(index + 1, requests, session_nonces, finished);
+        return this.rewritePayloads(index + 1, requests, session_nonces, finished);
       };
 
       // If this isn't a transaction we can modify, ignore it.
       if (payload.method != "eth_sendTransaction") {
-        next();
-        return;
+        return next();
       }
 
       var tx_params = payload.params[0];
@@ -78,8 +76,7 @@ var factory = function(web3) {
 
       this.transaction_signer.hasAddress(sender, (err, has_address) => {
         if (err != null || has_address == false) {
-          next(err);
-          return;
+          return next(err);
         }
 
         // Get the nonce, requesting from web3 if we haven't already requested it in this session.
@@ -110,8 +107,7 @@ var factory = function(web3) {
         // to request from web3 again.
         getNonce((err, nonce) => {
           if (err != null) {
-            finished(err);
-            return;
+            return finished(err);
           }
 
           // Set the expected nonce, and update our caches of nonces.
@@ -131,13 +127,12 @@ var factory = function(web3) {
           // sign the transaction ourself and rewrite the payload.
           this.transaction_signer.signTransaction(tx_params, function(err, raw_tx) {
             if (err != null) {
-              next(err);
-              return;
+              return next(err);
             }
 
             payload.method = "eth_sendRawTransaction";
             payload.params = [raw_tx];
-            next();
+            return next();
           });
         });
       });

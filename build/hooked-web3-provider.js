@@ -33,7 +33,7 @@ var factory = function factory(web3) {
 
     _createClass(HookedWeb3Provider, [{
       key: "send",
-      value: function send(payload) {
+      value: function send(payload, callback) {
         var _this = this;
 
         var requests = payload;
@@ -69,10 +69,11 @@ var factory = function factory(web3) {
         }
 
         var finishedWithRewrite = function finishedWithRewrite() {
-          _get(Object.getPrototypeOf(HookedWeb3Provider.prototype), "send", _this).call(_this, payload, callback);
+          console.log(payload);
+          return _get(Object.getPrototypeOf(HookedWeb3Provider.prototype), "send", _this).call(_this, payload, callback);
         };
 
-        this.rewritePayloads(0, requests, {}, finishedWithRewrite);
+        return this.rewritePayloads(0, requests, {}, finishedWithRewrite);
       }
 
       // Catch the requests at the sendAsync level, rewriting all sendTransaction
@@ -104,8 +105,7 @@ var factory = function factory(web3) {
         var _this3 = this;
 
         if (index >= requests.length) {
-          finished();
-          return;
+          return finished();
         }
 
         var payload = requests[index];
@@ -113,16 +113,14 @@ var factory = function factory(web3) {
         // Function to remove code duplication for going to the next payload
         var next = function next(err) {
           if (err != null) {
-            finished(err);
-            return;
+            return finished(err);
           }
-          _this3.rewritePayloads(index + 1, requests, session_nonces, finished);
+          return _this3.rewritePayloads(index + 1, requests, session_nonces, finished);
         };
 
         // If this isn't a transaction we can modify, ignore it.
         if (payload.method != "eth_sendTransaction") {
-          next();
-          return;
+          return next();
         }
 
         var tx_params = payload.params[0];
@@ -130,8 +128,7 @@ var factory = function factory(web3) {
 
         this.transaction_signer.hasAddress(sender, function (err, has_address) {
           if (err != null || has_address == false) {
-            next(err);
-            return;
+            return next(err);
           }
 
           // Get the nonce, requesting from web3 if we haven't already requested it in this session.
@@ -162,8 +159,7 @@ var factory = function factory(web3) {
           // to request from web3 again.
           getNonce(function (err, nonce) {
             if (err != null) {
-              finished(err);
-              return;
+              return finished(err);
             }
 
             // Set the expected nonce, and update our caches of nonces.
@@ -183,13 +179,12 @@ var factory = function factory(web3) {
             // sign the transaction ourself and rewrite the payload.
             _this3.transaction_signer.signTransaction(tx_params, function (err, raw_tx) {
               if (err != null) {
-                next(err);
-                return;
+                return next(err);
               }
 
               payload.method = "eth_sendRawTransaction";
               payload.params = [raw_tx];
-              next();
+              return next();
             });
           });
         });
