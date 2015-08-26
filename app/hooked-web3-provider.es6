@@ -25,7 +25,6 @@ var factory = function(web3) {
       }
 
       var finishedWithRewrite = () => {
-        console.log(payload);
         return super.send(payload, callback);
       };
 
@@ -92,11 +91,19 @@ var factory = function(web3) {
             // Include pending transactions, so the nonce is set accordingly.
             // Note: "pending" doesn't seem to take effect for some Ethereum clients (geth),
             // hence the need for global_nonces.
-            web3.eth.getTransactionCount(sender, "pending", function(err, new_nonce) {
+            // We call directly to our own sendAsync method, because the web3 provider
+            // is not guaranteed to be set.
+            this.sendAsync({
+              jsonrpc: '2.0',
+              method: 'eth_getTransactionCount',
+              params: [sender, "pending"],
+              id: (new Date()).getTime()
+            }, function(err, result) {
               if (err != null) {
                 done(err);
               } else {
-                done(null, new_nonce.valueOf());
+                var new_nonce = result.result;
+                done(null, web3.toDecimal(new_nonce));
               }
             });
           }
@@ -142,8 +149,8 @@ var factory = function(web3) {
   return HookedWeb3Provider;
 };
 
-var module = module || undefined;
-if (module != null) {
+var m = module || undefined;
+if (m != null) {
   module.exports = factory(require("web3"));
 } else {
   window.HookedWeb3Provider = factory(web3);
