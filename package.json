@@ -1,6 +1,6 @@
 {
   "name": "hooked-web3-provider",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A Web3 Provider that has hooks for a key provider and transaction signer",
   "author": "Tim Coulter",
   "main": "build/hooked-web3-provider.js",
