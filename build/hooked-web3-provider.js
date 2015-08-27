@@ -204,9 +204,9 @@ var factory = function factory(web3) {
   return HookedWeb3Provider;
 };
 
-var m = module || undefined;
-if (m != null) {
-  module.exports = factory(require("web3"));
-} else {
+// dont override global variable
+if (typeof window !== 'undefined' && typeof window.HookedWeb3Provider === 'undefined') {
   window.HookedWeb3Provider = factory(web3);
+} else if (typeof module !== 'undefined') {
+  module.exports = factory(require("web3"));
 }
