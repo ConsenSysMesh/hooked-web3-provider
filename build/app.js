@@ -5200,7 +5200,7 @@ var module = module || undefined;
 
 var __provisioner = {
   provision_contracts: function(scope) {
-    scope.__contracts = JSON.parse("{\n  \"Example\": {\n    \"source\": \"/Users/tim/Documents/workspace/Consensys/hooked-web3-provider/contracts/Example.sol\",\n    \"binary\": \"0x60606040525b5b60888060136000396000f30060606040526000357c010000000000000000000000000000000000000000000000000000000090048063130d6dc514604157806360fe47b114606057603f565b005b604a6004506071565b6040518082815260200191505060405180910390f35b606f600480359060200150607a565b005b60006000505481565b806000600050819055505b5056\",\n    \"abi\": [\n      {\n        \"inputs\": [],\n        \"constant\": true,\n        \"name\": \"test_value\",\n        \"outputs\": [\n          {\n            \"type\": \"uint256\",\n            \"name\": \"\"\n          }\n        ],\n        \"type\": \"function\"\n      },\n      {\n        \"inputs\": [\n          {\n            \"type\": \"uint256\",\n            \"name\": \"new_value\"\n          }\n        ],\n        \"constant\": false,\n        \"name\": \"set\",\n        \"outputs\": [],\n        \"type\": \"function\"\n      },\n      {\n        \"inputs\": [],\n        \"type\": \"constructor\"\n      }\n    ]\n  }\n}");
+    scope.__contracts = JSON.parse("{\n  \"Example\": {\n    \"source\": \"/Users/ck/consensys/noncense/persona-integration/myhooked/contracts/Example.sol\"\n  }\n}");
 
     for (var key in scope.__contracts) {
       var contract = scope.__contracts[key];
@@ -50046,9 +50046,7 @@ var factory = function factory(web3) {
 
     _createClass(HookedWeb3Provider, [{
       key: "send",
-      value: function send(payload, callback) {
-        var _this = this;
-
+      value: function send(payload) {
         var requests = payload;
         if (!(requests instanceof Array)) {
           requests = [requests];
@@ -50081,11 +50079,7 @@ var factory = function factory(web3) {
           }
         }
 
-        var finishedWithRewrite = function finishedWithRewrite() {
-          return _get(Object.getPrototypeOf(HookedWeb3Provider.prototype), "send", _this).call(_this, payload, callback);
-        };
-
-        return this.rewritePayloads(0, requests, {}, finishedWithRewrite);
+        return _get(Object.getPrototypeOf(HookedWeb3Provider.prototype), "send", this).call(this, payload);
       }
 
       // Catch the requests at the sendAsync level, rewriting all sendTransaction
@@ -50094,10 +50088,14 @@ var factory = function factory(web3) {
     }, {
       key: "sendAsync",
       value: function sendAsync(payload, callback) {
-        var _this2 = this;
+        var _this = this;
 
+        var backupNonces = Object.assign({}, this.global_nonces);
         var finishedWithRewrite = function finishedWithRewrite() {
-          _get(Object.getPrototypeOf(HookedWeb3Provider.prototype), "sendAsync", _this2).call(_this2, payload, callback);
+          _get(Object.getPrototypeOf(HookedWeb3Provider.prototype), "sendAsync", _this).call(_this, payload, (function (err, res) {
+            if (err || res.error) this.global_nonces = backupNonces;
+            return callback(err, res);
+          }).bind(_this));
         };
 
         var requests = payload;
@@ -50114,7 +50112,7 @@ var factory = function factory(web3) {
     }, {
       key: "rewritePayloads",
       value: function rewritePayloads(index, requests, session_nonces, finished) {
-        var _this3 = this;
+        var _this2 = this;
 
         if (index >= requests.length) {
           return finished();
@@ -50127,7 +50125,7 @@ var factory = function factory(web3) {
           if (err != null) {
             return finished(err);
           }
-          return _this3.rewritePayloads(index + 1, requests, session_nonces, finished);
+          return _this2.rewritePayloads(index + 1, requests, session_nonces, finished);
         };
 
         // If this isn't a transaction we can modify, ignore it.
@@ -50158,7 +50156,7 @@ var factory = function factory(web3) {
               // hence the need for global_nonces.
               // We call directly to our own sendAsync method, because the web3 provider
               // is not guaranteed to be set.
-              _this3.sendAsync({
+              _this2.sendAsync({
                 jsonrpc: '2.0',
                 method: 'eth_getTransactionCount',
                 params: [sender, "pending"],
@@ -50186,18 +50184,18 @@ var factory = function factory(web3) {
             // Note that if our session nonce is lower than what we have cached
             // across all transactions (and not just this batch) use our cached
             // version instead, even if
-            var final_nonce = Math.max(nonce, _this3.global_nonces[sender] || 0);
+            var final_nonce = Math.max(nonce, _this2.global_nonces[sender] || 0);
 
             // Update the transaction parameters.
             tx_params.nonce = web3.toHex(final_nonce);
 
             // Update caches.
             session_nonces[sender] = final_nonce + 1;
-            _this3.global_nonces[sender] = final_nonce + 1;
+            _this2.global_nonces[sender] = final_nonce + 1;
 
             // If our transaction signer does represent the address,
             // sign the transaction ourself and rewrite the payload.
-            _this3.transaction_signer.signTransaction(tx_params, function (err, raw_tx) {
+            _this2.transaction_signer.signTransaction(tx_params, function (err, raw_tx) {
               if (err != null) {
                 return next(err);
               }
