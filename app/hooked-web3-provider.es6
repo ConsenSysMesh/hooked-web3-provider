@@ -31,8 +31,13 @@ var factory = function(web3) {
     // methods to sendRawTransaction, calling out to the transaction_signer to
     // get the data for sendRawTransaction.
     sendAsync(payload, callback) {
+      var backupNonces = Object.assign({}, this.global_nonces);
       var finishedWithRewrite = () => {
-        super.sendAsync(payload, callback);
+        super.sendAsync(payload, function(err, res) {
+          if (err || res.error)
+            this.global_nonces = backupNonces;
+          return callback(err, res);
+        }.bind(this));
       };
 
       var requests = payload;
