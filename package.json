@@ -5,6 +5,9 @@
   "author": "Tim Coulter",
   "main": "build/hooked-web3-provider.js",
   "private": false,
+  "scripts": {
+    "build": "truffle build"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/consensys/hooked-web3-provider.git"
@@ -12,6 +15,7 @@
   "devDependencies": {
     "jquery": "*",
     "ethereumjs-accounts": "git+https://github.com/tcoulter/ethereumjs-accounts.git",
+    "truffle": "*",
     "bignumber.js": "*"
   },
   "license": "MIT License. Copyright Consensys LLC, and authors. All rights reserved."
