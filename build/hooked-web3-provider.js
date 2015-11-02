@@ -10,9 +10,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-var factory = function factory(web3) {
-  var HookedWeb3Provider = (function (_web3$providers$HttpProvider) {
-    _inherits(HookedWeb3Provider, _web3$providers$HttpProvider);
+var factory = function factory(Web3) {
+  var HookedWeb3Provider = (function (_Web3$providers$HttpProvider) {
+    _inherits(HookedWeb3Provider, _Web3$providers$HttpProvider);
 
     function HookedWeb3Provider(_ref) {
       var host = _ref.host;
@@ -155,7 +155,7 @@ var factory = function factory(web3) {
                   done(err);
                 } else {
                   var new_nonce = result.result;
-                  done(null, web3.toDecimal(new_nonce));
+                  done(null, Web3.prototype.toDecimal(new_nonce));
                 }
               });
             }
@@ -176,7 +176,7 @@ var factory = function factory(web3) {
             var final_nonce = Math.max(nonce, _this3.global_nonces[sender] || 0);
 
             // Update the transaction parameters.
-            tx_params.nonce = web3.toHex(final_nonce);
+            tx_params.nonce = Web3.prototype.toHex(final_nonce);
 
             // Update caches.
             session_nonces[sender] = final_nonce + 1;
@@ -199,7 +199,7 @@ var factory = function factory(web3) {
     }]);
 
     return HookedWeb3Provider;
-  })(web3.providers.HttpProvider);
+  })(Web3.providers.HttpProvider);
 
   return HookedWeb3Provider;
 };
@@ -207,5 +207,5 @@ var factory = function factory(web3) {
 if (typeof module !== 'undefined') {
   module.exports = factory(require("web3"));
 } else {
-  window.HookedWeb3Provider = factory(web3);
+  window.HookedWeb3Provider = factory(Web3);
 }
