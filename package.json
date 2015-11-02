@@ -14,5 +14,8 @@
     "ethereumjs-accounts": "git+https://github.com/tcoulter/ethereumjs-accounts.git",
     "bignumber.js": "*"
   },
-  "license": "MIT License. Copyright Consensys LLC, and authors. All rights reserved."
+  "license": "MIT License. Copyright Consensys LLC, and authors. All rights reserved.",
+  "dependencies": {
+    "web3": "0.15.1"
+  }
 }

@@ -1,6 +1,6 @@
-var factory = function(web3) {
+var factory = function(Web3) {
 
-  class HookedWeb3Provider extends web3.providers.HttpProvider {
+  class HookedWeb3Provider extends Web3.providers.HttpProvider {
     constructor({host, transaction_signer}) {
       super(host);
       this.transaction_signer = transaction_signer;
@@ -103,7 +103,7 @@ var factory = function(web3) {
                 done(err);
               } else {
                 var new_nonce = result.result;
-                done(null, web3.toDecimal(new_nonce));
+                done(null, Web3.prototype.toDecimal(new_nonce));
               }
             });
           }
@@ -124,7 +124,7 @@ var factory = function(web3) {
           var final_nonce = Math.max(nonce, this.global_nonces[sender] || 0);
 
           // Update the transaction parameters.
-          tx_params.nonce = web3.toHex(final_nonce);
+          tx_params.nonce = Web3.prototype.toHex(final_nonce);
 
           // Update caches.
           session_nonces[sender] = final_nonce + 1;
@@ -152,5 +152,5 @@ var factory = function(web3) {
 if (typeof module !== 'undefined') {
   module.exports = factory(require("web3"));
 } else {
-  window.HookedWeb3Provider = factory(web3);
+  window.HookedWeb3Provider = factory(Web3);
 }
