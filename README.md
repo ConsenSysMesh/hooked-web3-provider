@@ -1,5 +1,8 @@
 # DEPRECATED
-see https://github.com/metamask/provider-engine
+for rough equivalent see https://github.com/ethjs/ethjs-provider-signer
+
+for advanced configuration see https://github.com/metamask/provider-engine
+
 
 # Hooked Web3 Provider
 
