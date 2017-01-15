@@ -205,7 +205,8 @@ var factory = function factory(Web3) {
 };
 
 if (typeof module !== 'undefined') {
-  module.exports = factory(require("web3"));
+  var Web3 = require("web3");
+  module.exports = factory(new Web3());
 } else {
-  window.HookedWeb3Provider = factory(Web3);
+  window.HookedWeb3Provider = factory(new Web3());
 }
